@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+*.log
+npm-debug.log*
+tmp/
+.DS_Store
+
+# env / credentials
+.env
+.env.local
+.env.*.local
+
+# generated
+# NOTE: frontend/chat/src/types/gen/ は生成物だが、CI と手元の typecheck が
+#       backend を起動せずに通るようコミットしている（apigen で作り直す）。
+*.tsbuildinfo
+backend/chat/src/generated/
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/

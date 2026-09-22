@@ -1,0 +1,155 @@
+// このファイルは database/chat/sql/tables/*.sql から `npm run db:pull` で生成する。
+// 手で編集せず、DDL を変えてから開発 DB を作り直して db:pull をやり直すこと。
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model chat_models {
+  id                           String       @id @db.VarChar(64)
+  display_name                 String       @db.VarChar(128)
+  input_credits_per_1k_tokens  Int          @db.UnsignedInt
+  output_credits_per_1k_tokens Int          @db.UnsignedInt
+  sort_order                   Int          @default(0) @db.UnsignedInt
+  created_at                   DateTime     @default(now()) @db.DateTime(0)
+  updated_at                   DateTime     @default(now()) @db.DateTime(0)
+  chat_rooms                   chat_rooms[]
+}
+
+model accounts {
+  id              String            @id @db.Char(26)
+  wallet_address  String            @unique(map: "uk_accounts_wallet_address") @db.Char(42)
+  display_name    String?           @db.VarChar(64)
+  credit_balance  BigInt            @default(0)
+  created_at      DateTime          @default(now()) @db.DateTime(0)
+  updated_at      DateTime          @default(now()) @db.DateTime(0)
+  chat_rooms      chat_rooms[]
+  credit_deposits credit_deposits[]
+  credit_ledger   credit_ledger[]
+  sessions        sessions[]
+}
+
+model auth_nonces {
+  id             String    @id @db.Char(26)
+  wallet_address String    @db.Char(42)
+  nonce          String    @unique(map: "uk_auth_nonces_nonce") @db.Char(32)
+  expires_at     DateTime  @db.DateTime(0)
+  consumed_at    DateTime? @db.DateTime(0)
+  created_at     DateTime  @default(now()) @db.DateTime(0)
+
+  @@index([wallet_address], map: "idx_auth_nonces_wallet_address")
+}
+
+model sessions {
+  id         String    @id @db.Char(26)
+  account_id String    @db.Char(26)
+  token_hash String    @unique(map: "uk_sessions_token_hash") @db.Char(64)
+  expires_at DateTime  @db.DateTime(0)
+  revoked_at DateTime? @db.DateTime(0)
+  created_at DateTime  @default(now()) @db.DateTime(0)
+  accounts   accounts  @relation(fields: [account_id], references: [id], onDelete: Cascade, map: "fk_sessions_account_id")
+
+  @@index([account_id], map: "idx_sessions_account_id")
+}
+
+model chat_rooms {
+  id                     String          @id @db.Char(26)
+  account_id             String          @db.Char(26)
+  title                  String          @db.VarChar(128)
+  model_id               String          @db.VarChar(64)
+  system_prompt          String?         @db.Text
+  message_count          Int             @default(0) @db.UnsignedInt
+  anchored_message_count Int             @default(0) @db.UnsignedInt
+  created_at             DateTime        @default(now()) @db.DateTime(0)
+  updated_at             DateTime        @default(now()) @db.DateTime(0)
+  accounts               accounts        @relation(fields: [account_id], references: [id], onDelete: Cascade, map: "fk_chat_rooms_account_id")
+  chat_models            chat_models     @relation(fields: [model_id], references: [id], map: "fk_chat_rooms_model_id")
+  chat_messages          chat_messages[]
+  log_anchors            log_anchors[]
+
+  @@index([account_id], map: "idx_chat_rooms_account_id")
+  @@index([model_id], map: "fk_chat_rooms_model_id")
+}
+
+model chat_messages {
+  id              String     @id @db.Char(26)
+  room_id         String     @db.Char(26)
+  sequence        Int        @db.UnsignedInt
+  role            String     @db.VarChar(16)
+  content         String     @db.MediumText
+  content_hash    String     @db.Char(66)
+  model_id        String?    @db.VarChar(64)
+  input_tokens    Int        @default(0) @db.UnsignedInt
+  output_tokens   Int        @default(0) @db.UnsignedInt
+  credits_charged Int        @default(0) @db.UnsignedInt
+  created_at      DateTime   @default(now()) @db.DateTime(3)
+  chat_rooms      chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade, map: "fk_chat_messages_room_id")
+
+  @@unique([room_id, sequence], map: "uk_chat_messages_room_id_sequence")
+  @@index([room_id, created_at], map: "idx_chat_messages_room_id_created_at")
+}
+
+model credit_deposits {
+  id               String   @id @db.Char(26)
+  account_id       String   @db.Char(26)
+  chain_id         Int      @db.UnsignedInt
+  contract_address String   @db.Char(42)
+  deposit_id       BigInt   @db.UnsignedBigInt
+  tx_hash          String   @db.Char(66)
+  log_index        Int      @db.UnsignedInt
+  block_number     BigInt   @db.UnsignedBigInt
+  amount_wei       Decimal  @db.Decimal(38, 0)
+  credits_granted  BigInt
+  created_at       DateTime @default(now()) @db.DateTime(0)
+  accounts         accounts @relation(fields: [account_id], references: [id], onDelete: Cascade, map: "fk_credit_deposits_account_id")
+
+  @@unique([chain_id, contract_address, deposit_id], map: "uk_credit_deposits_chain_contract_deposit")
+  @@index([account_id], map: "idx_credit_deposits_account_id")
+}
+
+model credit_ledger {
+  id             String   @id @db.Char(26)
+  account_id     String   @db.Char(26)
+  kind           String   @db.VarChar(16)
+  amount         BigInt
+  balance_after  BigInt
+  reference_type String?  @db.VarChar(32)
+  reference_id   String?  @db.Char(26)
+  created_at     DateTime @default(now()) @db.DateTime(3)
+  accounts       accounts @relation(fields: [account_id], references: [id], onDelete: Cascade, map: "fk_credit_ledger_account_id")
+
+  @@unique([reference_type, reference_id], map: "uk_credit_ledger_reference")
+  @@index([account_id, created_at], map: "idx_credit_ledger_account_id_created_at")
+}
+
+model log_anchors {
+  id               String     @id @db.Char(26)
+  room_id          String     @db.Char(26)
+  sequence         Int        @db.UnsignedInt
+  merkle_root      String     @db.Char(66)
+  message_count    Int        @db.UnsignedInt
+  chain_id         Int        @db.UnsignedInt
+  contract_address String     @db.Char(42)
+  tx_hash          String?    @db.Char(66)
+  block_number     BigInt?    @db.UnsignedBigInt
+  status           String     @default("pending") @db.VarChar(16)
+  failure_reason   String?    @db.VarChar(255)
+  created_at       DateTime   @default(now()) @db.DateTime(0)
+  confirmed_at     DateTime?  @db.DateTime(0)
+  chat_rooms       chat_rooms @relation(fields: [room_id], references: [id], onDelete: Cascade, map: "fk_log_anchors_room_id")
+
+  @@unique([room_id, sequence], map: "uk_log_anchors_room_id_sequence")
+  @@index([status], map: "idx_log_anchors_status")
+}
+
+model chain_sync_states {
+  id                String   @id @db.VarChar(64)
+  chain_id          Int      @db.UnsignedInt
+  contract_address  String   @db.Char(42)
+  last_synced_block BigInt   @default(0) @db.UnsignedBigInt
+  updated_at        DateTime @default(now()) @db.DateTime(0)
+}

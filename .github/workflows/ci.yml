@@ -1,0 +1,82 @@
+name: CI
+
+# PR で contracts / backend / frontend の静的チェックを回す。
+# tsup と vite は型チェックをしないため、build とは別に typecheck を実行する。
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: contracts/package-lock.json
+      - name: Install dependencies
+        working-directory: contracts
+        run: npm ci
+      - name: Test
+        working-directory: contracts
+        run: npm test
+      - name: Typecheck
+        working-directory: contracts
+        run: npm run typecheck
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+      # Prisma Client は生成物でリポジトリに含めていないため、型チェック前に生成する。
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npm run db:generate
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "3306"
+          DB_USERNAME: root
+          DB_DATABASE: blockchain_chat_local
+      - name: Test
+        working-directory: backend
+        run: npm test
+      - name: Typecheck
+        working-directory: backend
+        run: npm run typecheck
+      - name: Build
+        working-directory: backend
+        run: npm run build
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Check (test / lint / typecheck)
+        working-directory: frontend
+        run: npm run check
+      - name: Build
+        working-directory: frontend
+        run: npm run build

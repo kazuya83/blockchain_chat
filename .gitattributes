@@ -1,0 +1,9 @@
+* text=auto
+
+# Docker のイメージに入るファイルは LF 固定。CRLF のまま COPY すると
+# 初期化スクリプトが `\r` で落ちる（Windows の core.autocrlf=true 対策）。
+*.sh text eol=lf
+*.sql text eol=lf
+*.conf text eol=lf
+Dockerfile text eol=lf
+my.cnf text eol=lf

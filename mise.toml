@@ -1,0 +1,70 @@
+[tools]
+node = "24"
+
+# Setup all
+[tasks.setup]
+description = "Setup all applications"
+depends = ["contracts:setup", "backend:setup", "frontend:setup", "database:setup"]
+run = "mise install"
+
+# Dev all
+[tasks.dev]
+description = "Run all development servers"
+run = """
+docker run -d --rm --name blockchain-chat-db -p 33070:3306 blockchain-chat/db 2>/dev/null || true
+trap 'docker stop blockchain-chat-db 2>/dev/null' EXIT
+npm run --prefix backend dev &
+npm run --prefix frontend dev &
+wait
+"""
+
+# Contracts targets
+[tasks."contracts:setup"]
+description = "Setup contracts dependencies"
+dir = "contracts"
+run = "npm ci"
+
+[tasks."contracts:test"]
+description = "Run contract tests"
+dir = "contracts"
+run = "npm test"
+
+[tasks."contracts:node"]
+description = "Run a local EVM node"
+dir = "contracts"
+run = "npm run node"
+
+# Backend targets
+[tasks."backend:setup"]
+description = "Setup backend dependencies"
+dir = "backend"
+run = """
+npm ci
+npm run db:generate
+"""
+
+[tasks."backend:dev"]
+description = "Run backend development server"
+dir = "backend"
+run = "npm run dev"
+
+# Frontend targets
+[tasks."frontend:setup"]
+description = "Setup frontend dependencies"
+dir = "frontend"
+run = "npm ci"
+
+[tasks."frontend:dev"]
+description = "Run frontend development server"
+dir = "frontend"
+run = "npm run dev"
+
+# Database targets
+[tasks."database:setup"]
+description = "Build database Docker image"
+dir = "database/chat"
+run = "docker build --no-cache -t blockchain-chat/db ."
+
+[tasks."database:dev"]
+description = "Start local database"
+run = "docker run --rm --name blockchain-chat-db -p 33070:3306 blockchain-chat/db"

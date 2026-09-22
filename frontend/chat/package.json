@@ -1,0 +1,18 @@
+{
+  "name": "chat",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3100",
+    "build": "vite build",
+    "preview": "vite preview",
+    "apigen": "tsx ../.scripts/apigen.ts --out ./src/types/gen",
+    "check": "npm run test && npm run lint && npm run typecheck",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\""
+  }
+}
