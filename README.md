@@ -47,17 +47,11 @@ mise run contracts:node  # ローカル EVM ノード（http://127.0.0.1:8545）
 
 - OpenAPI: `http://localhost:4100/openapi.json`、非 production の API UI: `http://localhost:4100/docs`
 - 環境変数は各パッケージの `.env.example` を写して `.env` を作る
+- mise は必須ではない。Node 24 があれば `npm` / `docker` を直接叩いてもよい
+  （**Windows では `mise run dev` は動かない**）。対応表は [docs/setup.md](docs/setup.md)
 
 ## 最初に動かすまで
 
-1. `mise run setup`
-2. `backend/chat/.env.example` を `backend/chat/.env` に写し、`ANTHROPIC_API_KEY` を設定する
-   （`ant auth login` 済みなら未設定でもよい）
-3. `mise run contracts:node` でローカルチェーンを起動する
-4. `cd contracts && DEPLOYER_PRIVATE_KEY=<ローカルノードが表示する鍵> npm run deploy:local`
-5. 出力された 2 つのアドレスと、同じ鍵を `backend/chat/.env` の
-   `CHAIN_CHAT_CREDIT_ADDRESS` / `CHAIN_CHAT_LOG_ANCHOR_ADDRESS` / `CHAIN_ANCHORER_PRIVATE_KEY` に設定する
-6. `mise run dev` で `http://localhost:3100` を開き、ウォレットでサインインする
-
-手順の詳細と本番チェーン（Polygon）への切り替えは
-[docs/current/01-architecture.md](docs/current/01-architecture.md) にある。
+何も入っていない状態からの手順は [docs/setup.md](docs/setup.md) にまとめてある。
+本番チェーン（Polygon）への切り替えは
+[docs/current/01-architecture.md](docs/current/01-architecture.md) を参照する。

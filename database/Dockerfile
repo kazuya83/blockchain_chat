@@ -2,7 +2,10 @@ FROM mysql:8.0
 
 WORKDIR /var/app
 
-COPY build/docker-entrypoint-initdb.d/* /docker-entrypoint-initdb.d/
+# 初期化スクリプトは mysql の entrypoint に **source** させる。001 は entrypoint 内の
+# シェル配列 ${mysql[@]} を使うため、実行可能だと別プロセスで実行されて無言で何もしない。
+# Windows は実行ビットを持たずビルドコンテキストが 0755 を送るので、ここで 644 に固定する。
+COPY --chmod=644 build/docker-entrypoint-initdb.d/* /docker-entrypoint-initdb.d/
 COPY build/my.cnf /etc/mysql/my.cnf
 COPY chat/ chat/
 

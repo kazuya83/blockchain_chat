@@ -62,7 +62,7 @@ run = "npm run dev"
 # Database targets
 [tasks."database:setup"]
 description = "Build database Docker image"
-dir = "database/chat"
+dir = "database"
 run = "docker build --no-cache -t blockchain-chat/db ."
 
 [tasks."database:dev"]
